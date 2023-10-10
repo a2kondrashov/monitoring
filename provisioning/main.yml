@@ -1,0 +1,48 @@
+---
+- name: Install Node Exporter
+  hosts: all
+  become: true
+  roles:
+    - node_exporter
+
+  post_tasks:
+    - name: Verify that Node Exporter URL is accessible
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9100"
+        method: GET
+      register: status_code
+      retries: 5
+      delay: 5
+      until: status_code.status == 200
+
+- name: Install Docker
+  hosts: all
+  become: true
+  roles:
+    - docker
+
+- name: Setup Monitoring
+  hosts: all
+  become: true
+  roles:
+    - monitoring
+
+  post_tasks:
+
+    - name: Verify that Prometheus URL is accessible
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9090"
+        method: GET
+      register: status_code
+      retries: 5
+      delay: 5
+      until: status_code.status == 200
+
+    - name: Verify that Grafana URL is accessible
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:3000"
+        method: GET
+      register: status_code
+      retries: 5
+      delay: 5
+      until: status_code.status == 200

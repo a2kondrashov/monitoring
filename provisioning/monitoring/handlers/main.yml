@@ -1,0 +1,16 @@
+---
+# handlers file for monitoring
+
+- name: Restart Prometheus container
+  community.docker.docker_container:
+    name: "prometheus"
+    image: "prom/prometheus"
+    state: started
+    restart: true
+
+- name: Restart Grafana container
+  community.docker.docker_container:
+    name: "grafana"
+    image: "grafana/grafana"
+    state: started
+    restart: true

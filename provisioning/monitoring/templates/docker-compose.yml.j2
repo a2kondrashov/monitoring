@@ -1,0 +1,22 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - "{{ prometheus_config_dir }}:/etc/prometheus"
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/1860.json"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    volumes:
+      - "{{ grafana_datasources_dir }}:/etc/grafana/provisioning/datasources"
+      - "{{ grafana_dashboards_dir }}:/etc/grafana/provisioning/dashboards"
+      - "{{ grafana_ext_dashboards_dir }}:/var/lib/grafana/dashboards"

@@ -1,0 +1,59 @@
+---
+# tasks file for monitoring install
+
+# create required directories
+- name: Ensure required directories for project exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ docker_composer_dir }}"
+    - "{{ prometheus_config_dir }}"
+    - "{{ grafana_datasources_dir }}"
+    - "{{ grafana_dashboards_dir }}"
+    - "{{ grafana_ext_dashboards_dir }}"
+
+# deploy docker-compose file
+- name: Copy docker-compose.yml file
+  ansible.builtin.template:
+    src: "docker-compose.yml.j2"
+    dest: "{{ docker_composer_dir }}/docker-compose.yml"
+    mode: "0644"
+
+# config for Prometheus
+- name: Copy config file for Prometheus
+  ansible.builtin.template:
+    src: "prometheus.yml.j2"
+    dest: "{{ prometheus_config_dir }}/prometheus.yml"
+    mode: '0644'
+  notify: Restart Prometheus container
+
+# configs for Grafana
+- name: Copy datasources_all.yml
+  ansible.builtin.copy:
+    src: datasources_all.yml
+    dest: "{{ grafana_datasources_dir }}/all.yml"
+    mode: '0644'
+  notify: Restart Grafana container
+
+- name: Copy dashboards_all.yml
+  ansible.builtin.copy:
+    src: dashboards_all.yml
+    dest: "{{ grafana_dashboards_dir }}/all.yml"
+    mode: '0644'
+  notify: Restart Grafana container
+
+# exported dashboard Node Exporter Full (1860) for Grafana
+- name: Download exported dashboard Node Exporter Full (1860)
+  ansible.builtin.get_url:
+    url: https://grafana.com/api/dashboards/1860/revisions/32/download
+    dest: "{{ grafana_ext_dashboards_dir }}/1860.json"
+    mode: '0644'
+
+# Fire up Prometheus and Grafana docker containers
+- name: Deploy Docker Compose stack
+  community.docker.docker_compose:
+    project_src: "{{ docker_composer_dir }}"
+    files:
+      - "docker-compose.yml"

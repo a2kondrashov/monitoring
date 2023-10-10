@@ -1,0 +1,83 @@
+---
+# tasks file for node_exporter install
+
+- name: Check if node_exporter binary is present
+  ansible.builtin.stat:
+    path: "{{ node_exporter_binary_path }}/node_exporter"
+  register: already_exist
+
+- name: Obtain and install latest version from node_exporter Github repo
+  when: not already_exist.stat.exists
+  block:
+
+    - name: Scrape Github API endpoint to obtain latest node_exporter version
+      ansible.builtin.uri:
+        url: "https://api.github.com/repos/prometheus/node_exporter/releases/latest"
+        method: GET
+        body_format: json
+      become: false
+      delegate_to: localhost
+      run_once: true
+      register: github_latest_version
+
+    - name: Latest available node_exporter version
+      ansible.builtin.set_fact:
+        node_exporter_version: "{{ github_latest_version.json.tag_name | regex_replace('^v?(\\d+\\.\\d+\\.\\d+)$', '\\1') }}"
+
+    - name: Create node_exporter system group
+      ansible.builtin.group:
+        name: "{{ node_exporter_group }}"
+        system: true
+        state: present
+
+    - name: Create the node_exporter system user
+      ansible.builtin.user:
+        name: "{{ node_exporter_user }}"
+        group: "{{ node_exporter_group }}"
+        shell: "/sbin/nologin"
+        system: true
+        create_home: false
+        state: present
+
+    - name: Unarchive node_exporter binary to /tmp
+      ansible.builtin.unarchive:
+        src: "{{ node_exporter_download_url }}"
+        dest: "/tmp"
+        remote_src: true
+        validate_certs: false
+
+    - name: Copy node_exporter binary from /tmp to "{{ node_exporter_binary_path }}"
+      ansible.builtin.copy:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        dest: "{{ node_exporter_binary_path }}"
+        mode: "0750"
+        owner: "{{ node_exporter_user }}"
+        group: "{{ node_exporter_group }}"
+        remote_src: true
+
+    - name: Clean /tmp
+      ansible.builtin.file:
+        path: /tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/
+        state: absent
+
+- name: Create node_exporter config dir
+  ansible.builtin.file:
+    path: "{{ node_exporter_config_dir }}"
+    state: directory
+    mode: "0755"
+  when: node_exporter_config_dir is defined
+
+- name: Template node_exporter systemd unit file
+  ansible.builtin.template:
+    src: node_exporter.service.j2
+    dest: "/etc/systemd/system/node_exporter.service"
+    mode: "0644"
+  notify: Restart node_exporter
+
+- name: Flush handlers after deployment
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure that node_exporter is started
+  ansible.builtin.systemd:
+    name: node_exporter
+    state: started
