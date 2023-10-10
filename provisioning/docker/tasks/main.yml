@@ -8,7 +8,7 @@
     state: present
     update_cache: true
 
-- name: Install docker docker-compose python package
+- name: Install docker, docker-compose python packages
   ansible.builtin.pip:
     name:
       - docker

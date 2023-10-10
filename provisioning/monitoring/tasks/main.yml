@@ -14,6 +14,15 @@
     - "{{ grafana_dashboards_dir }}"
     - "{{ grafana_ext_dashboards_dir }}"
 
+# create data dir for Prometheus with special permissions
+- name: Ensure required data directory for Prometheus
+  ansible.builtin.file:
+    path: "{{ prometheus_data_dir }}"
+    state: directory
+    owner: "65534"
+    group: "65534"
+    mode: "0755"
+
 # deploy docker-compose file
 - name: Copy docker-compose.yml file
   ansible.builtin.template:

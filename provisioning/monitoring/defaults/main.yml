@@ -3,6 +3,7 @@
 
 docker_composer_dir: "/opt/docker-composer"
 prometheus_config_dir: "/opt/prometheus/config"
+prometheus_data_dir: "/opt/prometheus/data"
 grafana_datasources_dir: "/opt/grafana/provisioning/datasources"
 grafana_dashboards_dir: "/opt/grafana/provisioning/dashboards"
 grafana_ext_dashboards_dir: "/opt/grafana/dashboards"
